@@ -10,6 +10,7 @@ class Document(Base):
     __tablename__ = 'documents'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    owner_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     filename: Mapped[str] = mapped_column(String, nullable=False)
     content_type: Mapped[str] = mapped_column(String, nullable=False)
     upload_time: Mapped[datetime] = mapped_column(

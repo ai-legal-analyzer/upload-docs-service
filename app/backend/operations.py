@@ -134,6 +134,44 @@ async def get_document_chunks_paginated(
     return chunks, total_count
 
 
+async def get_documents_by_owner_paginated(
+    db: AsyncSession,
+    owner_id: int,
+    skip: int = 0,
+    limit: int = 100
+) -> tuple[List[Document], int]:
+    """
+    Get documents by owner_id with pagination.
+    
+    Args:
+        db: Database session
+        owner_id: ID of the document owner
+        skip: Number of documents to skip
+        limit: Maximum number of documents to return
+        
+    Returns:
+        tuple of (documents, total_count)
+    """
+    # Get total count for this owner
+    count_result = await db.execute(
+        select(func.count(Document.id))
+        .where(Document.owner_id == owner_id)
+    )
+    total_count = count_result.scalar()
+    
+    # Get documents for this owner
+    result = await db.execute(
+        select(Document)
+        .where(Document.owner_id == owner_id)
+        .offset(skip)
+        .limit(limit)
+        .order_by(Document.upload_time.desc())
+    )
+    documents = result.scalars().all()
+    
+    return documents, total_count
+
+
 async def delete_old_documents(
     db: AsyncSession,
     days_old: int = 30

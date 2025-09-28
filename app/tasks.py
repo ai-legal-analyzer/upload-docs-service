@@ -1,6 +1,6 @@
 import tempfile
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any
 from celery import current_task
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
@@ -15,7 +15,7 @@ from app.backend.db import DATABASE_URL
 # AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 ALLOWED_EXTENSIONS = {"pdf", "docx"}
-CHUNK_SIZE = 1000  # characters
+CHUNK_SIZE = 3000  # characters
 
 
 def parse_pdf(file_path: Path) -> str:
@@ -42,8 +42,9 @@ def process_document(
     self,
     file_content: bytes,
     filename: str,
-    content_type: str
-) -> dict[str, any]:
+    content_type: str,
+    owner_id: int
+) -> dict[str, Any]:
     """
     Background task to process uploaded documents.
     
@@ -51,6 +52,7 @@ def process_document(
         file_content: The file content as bytes
         filename: Original filename
         content_type: MIME type of the file
+        owner_id: ID of the document owner
         
     Returns:
         dict with document_id and num_chunks
@@ -114,7 +116,8 @@ def process_document(
                         doc = Document(
                             filename=filename,
                             content_type=content_type,
-                            num_chunks=len(chunks)
+                            num_chunks=len(chunks),
+                            owner_id=owner_id
                         )
                         db.add(doc)
                         await db.flush()  # Get the ID before commit
@@ -158,49 +161,49 @@ def process_document(
         raise
 
 
-@celery_app.task
-def cleanup_old_documents(days_old: int = 30) -> dict[str, any]:
-    """
-    Background task to clean up old documents.
-    
-    Args:
-        days_old: Number of days after which documents should be deleted
-        
-    Returns:
-        dict with number of deleted documents
-    """
-    try:
-        import asyncio
-        from datetime import datetime, timedelta
-        from sqlalchemy import delete
-        
-        async def delete_old_documents():
-            async with AsyncSessionLocal() as db:
-                cutoff_date = datetime.utcnow() - timedelta(days=days_old)
-                
-                # Delete documents older than cutoff_date
-                result = await db.execute(
-                    delete(Document).where(Document.upload_time < cutoff_date)
-                )
-                await db.commit()
-                
-                return result.rowcount
-        
-        # Run the async function
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            deleted_count = loop.run_until_complete(delete_old_documents())
-        finally:
-            loop.close()
-        
-        return {
-            "deleted_documents": deleted_count,
-            "status": "success"
-        }
-        
-    except Exception as exc:
-        return {
-            "error": str(exc),
-            "status": "error"
-        } 
+# @celery_app.task
+# def cleanup_old_documents(days_old: int = 30) -> dict[str, any]:
+#     """
+#     Background task to clean up old documents.
+#
+#     Args:
+#         days_old: Number of days after which documents should be deleted
+#
+#     Returns:
+#         dict with number of deleted documents
+#     """
+#     try:
+#         import asyncio
+#         from datetime import datetime, timedelta
+#         from sqlalchemy import delete
+#
+#         async def delete_old_documents():
+#             async with AsyncSessionLocal() as db:
+#                 cutoff_date = datetime.utcnow() - timedelta(days=days_old)
+#
+#                 # Delete documents older than cutoff_date
+#                 result = await db.execute(
+#                     delete(Document).where(Document.upload_time < cutoff_date)
+#                 )
+#                 await db.commit()
+#
+#                 return result.rowcount
+#
+#         # Run the async function
+#         loop = asyncio.new_event_loop()
+#         asyncio.set_event_loop(loop)
+#         try:
+#             deleted_count = loop.run_until_complete(delete_old_documents())
+#         finally:
+#             loop.close()
+#
+#         return {
+#             "deleted_documents": deleted_count,
+#             "status": "success"
+#         }
+#
+#     except Exception as exc:
+#         return {
+#             "error": str(exc),
+#             "status": "error"
+#         }

@@ -3,14 +3,15 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated, Any
 
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.backend.db_depends import get_db
 from app.backend.operations import (
     get_documents_paginated,
     get_document_by_id,
-    get_document_chunks_paginated
+    get_document_chunks_paginated,
+    get_documents_by_owner_paginated
 )
 from app.backend.utils import validate_file
 from app.celery_app import celery_app
@@ -35,7 +36,8 @@ async def temp_upload_file(file: UploadFile) -> Path:
 
 @router.post("/", status_code=202, summary="Upload a document for background processing")
 async def upload_file(
-        file: Annotated[UploadFile, File(description="PDF or DOCX file to upload")]
+        file: Annotated[UploadFile, File(description="PDF or DOCX file to upload")],
+        owner_id: int = Query(..., description="ID of the document owner")
 ) -> dict[str, Any]:
     """
     Upload a document file (PDF or DOCX) for background processing.
@@ -56,7 +58,8 @@ async def upload_file(
     task = process_document.delay(
         file_content=file_content,
         filename=file.filename,
-        content_type=file.content_type
+        content_type=file.content_type,
+        owner_id=owner_id
     )
 
     return {
@@ -109,6 +112,45 @@ async def get_task_status(task_id: str) -> dict[str, Any]:
         }
 
     return response
+
+
+@router.get("/owner/{owner_id}", summary="List documents by owner")
+async def list_documents_by_owner(
+        owner_id: int,
+        db: Annotated[AsyncSession, Depends(get_db)],
+        skip: int = 0,
+        limit: int = 100
+) -> dict[str, Any]:
+    """
+    List all processed documents for a specific owner with pagination.
+    
+    Args:
+        owner_id: ID of the document owner
+        skip: Number of documents to skip
+        limit: Maximum number of documents to return
+        
+    Returns:
+        dict with list of documents and total count
+    """
+    documents, total_count = await get_documents_by_owner_paginated(db, owner_id, skip, limit)
+
+    return {
+        "documents": [
+            {
+                "id": doc.id,
+                "owner_id": doc.owner_id,
+                "filename": doc.filename,
+                "content_type": doc.content_type,
+                "upload_time": doc.upload_time.isoformat(),
+                "num_chunks": doc.num_chunks
+            }
+            for doc in documents
+        ],
+        "total_count": total_count,
+        "owner_id": owner_id,
+        "skip": skip,
+        "limit": limit
+    }
 
 
 @router.get("/", summary="List all documents")
