@@ -10,40 +10,72 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7
     restart: always
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    build: .
+    command: sh -c "cd /app && alembic upgrade head"
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@db:5432/postgres"
+      PYTHONPATH: "/app"
+    depends_on:
+      db:
+        condition: service_healthy
 
   web:
     build: .
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    working_dir: /app
     volumes:
-      - ./app:/app/app
+      - .:/app
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/postgres
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@db:5432/postgres"
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+      CELERY_RESULT_BACKEND: "redis://redis:6379/0"
+      PYTHONPATH: "/app"
     depends_on:
-      - db
-      - redis
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
     ports:
       - "8000:8000"
 
   worker:
     build: .
-    command: celery -A app.celery_app.celery_app worker --loglevel=info --queues=default,document_processing
+    command: celery -A app.celery_app worker --loglevel=info --queues=default,document_processing
+    working_dir: /app
+    user: "1000:1000"
     volumes:
-      - ./app:/app/app
+      - .:/app
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/postgres
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@db:5432/postgres"
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+      CELERY_RESULT_BACKEND: "redis://redis:6379/0"
+      PYTHONPATH: "/app"
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
-  postgres_data: 
+  postgres_data:
