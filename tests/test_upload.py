@@ -16,7 +16,7 @@ def generate_test_pdf():
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
     c.drawString(100, 750, "Test Document")
-    c.drawString(100, 730, f"Test content for document processing")
+    c.drawString(100, 730, "Test content for document processing")
     c.drawString(100, 710, f"Random ID: {random.randint(1000, 9999)}")
     c.drawString(100, 690, "This is a test PDF file for the upload service.")
     c.drawString(100, 670, "It contains sample text to be extracted and chunked.")
@@ -78,7 +78,8 @@ def test_upload_pdf_document(client):
     assert body["status"] == "processing"
     assert "message" in body
 
-    return body["task_id"]
+    # Store task_id for other tests if needed, but don't return it
+    # If you need the task_id elsewhere, use a fixture or class variable
 
 
 def test_upload_docx_document(client):
@@ -101,13 +102,26 @@ def test_upload_docx_document(client):
     assert "task_id" in body
     assert body["status"] == "processing"
 
-    return body["task_id"]
+    # Don't return task_id - test functions should return None
 
 
 def test_get_task_status(client):
     """Test checking task status"""
-    # First upload a document
-    task_id = test_upload_pdf_document(client)
+    # First upload a document to get a task_id
+    owner_id = generate_random_owner_id()
+    pdf_file = generate_test_pdf()
+
+    files = {
+        "file": ("test_document.pdf", pdf_file, "application/pdf")
+    }
+
+    upload_response = client.post(
+        f"/api/documents/?owner_id={owner_id}",
+        files=files
+    )
+
+    assert upload_response.status_code == 202
+    task_id = upload_response.json()["task_id"]
 
     # Wait a bit for processing to start
     time.sleep(2)
@@ -121,9 +135,8 @@ def test_get_task_status(client):
     assert body["state"] in ["PENDING", "PROGRESS", "SUCCESS", "FAILURE"]
 
 
-def test_wait_for_task_completion(client):
-    """Test waiting for a task to complete and verify result"""
-    owner_id = generate_random_owner_id()
+def _wait_for_task_completion(client, owner_id):
+    """Helper function to wait for task completion and return document_id"""
     pdf_file = generate_test_pdf()
 
     files = {
@@ -159,6 +172,16 @@ def test_wait_for_task_completion(client):
         wait_time += poll_interval
 
     pytest.fail("Task did not complete within timeout period")
+
+
+def test_wait_for_task_completion(client):
+    """Test waiting for a task to complete and verify result"""
+    owner_id = generate_random_owner_id()
+    document_id = _wait_for_task_completion(client, owner_id)
+
+    # Verify we got a document_id (implicitly tested in the helper)
+    assert isinstance(document_id, int)
+    assert document_id > 0
 
 
 def test_list_documents_by_owner(client):
@@ -199,7 +222,8 @@ def test_list_all_documents(client):
 def test_get_document_chunks(client):
     """Test retrieving chunks for a specific document"""
     # First create a document and wait for processing
-    document_id = test_wait_for_task_completion(client)
+    owner_id = generate_random_owner_id()
+    document_id = _wait_for_task_completion(client, owner_id)
 
     response = client.get(f"/api/documents/{document_id}/chunks")
 
@@ -293,8 +317,3 @@ def test_multiple_uploads_concurrent(client):
 
     assert len(task_ids) == 3
     assert len(set(task_ids)) == 3  # All task IDs should be unique
-
-
-if __name__ == "__main__":
-    # Run the tests
-    pytest.main([__file__, "-v"])
