@@ -14,9 +14,37 @@ spec:
           args:
             - cd /app && alembic upgrade head
           env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: upload-secrets
+                  key: postgres-password
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: upload-config
+                  key: postgres-user
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: upload-config
+                  key: postgres-host
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: upload-config
+                  key: postgres-port
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: upload-config
+                  key: postgres-db
             - name: DATABASE_URL
-              value: "postgresql+asyncpg://postgres:postgres@postgres-service:5432/postgres"
+              value: "postgresql+asyncpg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)"
             - name: PYTHONPATH
-              value: "/app"
+              valueFrom:
+                configMapKeyRef:
+                  name: upload-config
+                  key: pythonpath
       restartPolicy: Never
   backoffLimit: 3

@@ -20,17 +20,63 @@ spec:
           ports:
             - containerPort: 8000
           env:
-            - name: DATABASE_URL
-              value: "postgresql+asyncpg://postgres:postgres@postgres-service:5432/postgres"
-            - name: CELERY_BROKER_URL
-              value: "redis://redis-service.upload-service-ns.svc.cluster.local:6379/0"
-            - name: CELERY_RESULT_BACKEND
-              value: "redis://redis-service.upload-service-ns.svc.cluster.local:6379/0"
+            # Из ConfigMap
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: upload-config
+                  key: postgres-user
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: upload-config
+                  key: postgres-host
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: upload-config
+                  key: postgres-port
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: upload-config
+                  key: postgres-db
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: upload-config
+                  key: redis-host
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: upload-config
+                  key: redis-port
+            - name: REDIS_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: upload-config
+                  key: redis-db
             - name: PYTHONPATH
-              value: "/app"
-          envFrom:
-            - secretRef:
-                name: upload-secrets
+              valueFrom:
+                configMapKeyRef:
+                  name: upload-config
+                  key: pythonpath
+
+            # Из Secret
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: upload-secrets
+                  key: postgres-password
+
+            # Собранные URL
+            - name: DATABASE_URL
+              value: "postgresql+asyncpg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)"
+            - name: CELERY_BROKER_URL
+              value: "redis://$(REDIS_HOST):$(REDIS_PORT)/$(REDIS_DB)"
+            - name: CELERY_RESULT_BACKEND
+              value: "redis://$(REDIS_HOST):$(REDIS_PORT)/$(REDIS_DB)"
+
           livenessProbe:
             httpGet:
               path: /health

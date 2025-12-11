@@ -19,11 +19,20 @@ spec:
           image: postgres:15
           env:
             - name: POSTGRES_USER
-              value: "postgres"
+              valueFrom:
+                configMapKeyRef:
+                  name: upload-config
+                  key: postgres-user
             - name: POSTGRES_PASSWORD
-              value: "postgres"
+              valueFrom:
+                secretKeyRef:
+                  name: upload-secrets
+                  key: postgres-password
             - name: POSTGRES_DB
-              value: "postgres"
+              valueFrom:
+                configMapKeyRef:
+                  name: upload-config
+                  key: postgres-db
           ports:
             - containerPort: 5432
           volumeMounts:

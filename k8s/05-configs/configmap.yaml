@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: upload-config
+  namespace: upload-service-ns
+data:
+  # Базовые настройки
+  postgres-user: "postgres"
+  postgres-db: "postgres"
+  postgres-host: "postgres-service"
+  postgres-port: "5432"
+
+  redis-host: "redis-service.upload-service-ns.svc.cluster.local"
+  redis-port: "6379"
+  redis-db: "0"
+
+  pythonpath: "/app"
+
+  # URL подключений (шаблоны)
+  database-url-template: "postgresql+asyncpg://postgres:%s@postgres-service:5432/postgres"
+  redis-url-template: "redis://%s:%s/%s"
+
+  # Настройки Celery
+  celery-queues: "default,document_processing"
+  celery-log-level: "info"
+
+  # Health check paths
+  health-path: "/health"
+
+  # Настройки приложения (можно расширить)
+  app-name: "upload-service"
+  app-version: "1.0.0"
