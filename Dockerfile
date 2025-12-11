@@ -2,7 +2,6 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install uv (Rust-based ultra-fast Python package installer)
 RUN pip install --no-cache-dir uv
 
 COPY requirements.txt ./
