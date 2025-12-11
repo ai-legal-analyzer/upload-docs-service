@@ -1,4 +1,6 @@
 import asyncio
+import os
+import sys
 from logging.config import fileConfig
 
 from sqlalchemy import pool
@@ -65,6 +67,14 @@ async def run_async_migrations() -> None:
     and associate a connection with the context.
 
     """
+    # ДОБАВЬТЕ ЭТУ СТРОЧКУ:
+    # Получаем URL из переменной окружения или конфига
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        config.set_main_option("sqlalchemy.url", database_url)
+
+    # Для отладки - выводим URL
+    print(f"DEBUG: Using database URL: {config.get_main_option('sqlalchemy.url')}", file=sys.stderr)
 
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),

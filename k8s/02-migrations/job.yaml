@@ -1,0 +1,22 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrations-job
+  namespace: upload-service-ns
+spec:
+  template:
+    spec:
+      containers:
+        - name: migrate
+          image: upload-service:latest
+          imagePullPolicy: Never
+          command: [ "sh", "-c" ]
+          args:
+            - cd /app && alembic upgrade head
+          env:
+            - name: DATABASE_URL
+              value: "postgresql+asyncpg://postgres:postgres@postgres-service:5432/postgres"
+            - name: PYTHONPATH
+              value: "/app"
+      restartPolicy: Never
+  backoffLimit: 3

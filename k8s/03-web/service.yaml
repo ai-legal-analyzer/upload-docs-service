@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: upload-web-service
+  namespace: upload-service-ns
+spec:
+  selector:
+    app: upload-web
+  ports:
+    - port: 8000
+      targetPort: 8000
+  type: ClusterIP
