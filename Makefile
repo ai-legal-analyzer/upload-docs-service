@@ -1,7 +1,7 @@
 # Makefile
 .PHONY: all infra config migrate web worker ingress status logs clean port-forward restart deploy
 
-K8S_DIR = .
+K8S_DIR = k8s
 NAMESPACE = upload-service-ns
 
 # Основные цели
