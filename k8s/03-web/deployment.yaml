@@ -21,7 +21,7 @@ spec:
             - containerPort: 8000
           env:
             - name: DATABASE_URL
-              value: "postgresql+asyncpg://postgres:$(POSTGRES_PASSWORD)@postgres-service.upload-service-ns.svc.cluster.local:5432/postgres"
+              value: "postgresql+asyncpg://postgres:postgres@postgres-service:5432/postgres"
             - name: CELERY_BROKER_URL
               value: "redis://redis-service.upload-service-ns.svc.cluster.local:6379/0"
             - name: CELERY_RESULT_BACKEND

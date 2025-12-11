@@ -1,6 +1,9 @@
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.backend.db import init_db, engine
 from app.routers import upload
 
@@ -32,3 +35,11 @@ app.add_middleware(
 )
 
 app.include_router(upload.router, prefix="/api")
+
+
+@app.get("/health")
+async def health_check():
+    try:
+        return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
+    except Exception as e:
+        return {"status": "unhealthy", "error": str(e)}, 500
