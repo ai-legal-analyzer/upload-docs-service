@@ -3,6 +3,8 @@ kind: Service
 metadata:
   name: upload-web-service
   namespace: upload-service-ns
+  labels:
+    app: upload-web
 spec:
   selector:
     app: upload-web

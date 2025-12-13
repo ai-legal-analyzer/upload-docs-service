@@ -12,6 +12,10 @@ spec:
     metadata:
       labels:
         app: celery-worker
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
     spec:
       containers:
         - name: celery-worker

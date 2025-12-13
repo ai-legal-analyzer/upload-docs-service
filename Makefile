@@ -260,6 +260,17 @@ fast-deploy:
 	fi
 	@echo "✅ Fast deployment completed!"
 
+# Deploy service with its monitoring config
+deploy-with-monitoring: deploy
+	@echo "📊 Applying service monitoring configuration..."
+	kubectl apply -f k8s/07-monitoring/
+	@echo "✅ Service monitoring deployed!"
+
+# Export metrics config
+generate-metrics:
+	@echo "🔧 Generating metrics configuration..."
+	python scripts/generate-prometheus-config.py
+
 # Help
 help:
 	@echo "🚀 Upload Service Management Commands:"

@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: upload-service-monitor
+  namespace: upload-service-ns
+  labels:
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: upload-web
+  endpoints:
+  - targetPort: 8000
+    interval: 30s
+    path: /health
+    metricRelabelings:
+    - action: keep
+      regex: '.*'
+      sourceLabels: [__name__]
