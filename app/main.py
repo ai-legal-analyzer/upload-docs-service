@@ -29,7 +29,7 @@ origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
-# CORS middleware ДО роутеров!
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -40,9 +40,9 @@ app.add_middleware(
 
 app.include_router(upload.router, prefix="/api")
 
-
 from fastapi import Response
 import json
+
 
 @app.get("/health", response_class=Response)
 async def health_check():
@@ -50,7 +50,7 @@ async def health_check():
         data = {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
         return Response(
             content=json.dumps(data),
-            media_type="text/plain"  # ← Prometheus понимает text/plain
+            media_type="text/plain"
         )
     except Exception as e:
         return Response(

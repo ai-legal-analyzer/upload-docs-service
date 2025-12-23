@@ -1,7 +1,7 @@
 import os
+
 from celery import Celery
 
-# Create Celery instance
 celery_app = Celery(
     "upload_docs_service",
     broker=os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0"),
@@ -10,7 +10,6 @@ celery_app = Celery(
     include=["app.tasks"],
 )
 
-# Celery configuration
 celery_app.conf.update(
     task_serializer="json",
     accept_content=["json"],
@@ -24,7 +23,6 @@ celery_app.conf.update(
     worker_max_tasks_per_child=1000
 )
 
-# Configure task routing
 celery_app.conf.task_routes = {
     "app.tasks.process_document": {"queue": "document_processing"},
     "app.tasks.*": {"queue": "default"}
