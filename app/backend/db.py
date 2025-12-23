@@ -1,4 +1,5 @@
 import os
+
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 
@@ -26,4 +27,3 @@ async def get_db_session() -> AsyncSession:
     """Get an async session for use in FastAPI endpoints."""
     async with async_session_maker() as session:
         return session
-

@@ -1,10 +1,9 @@
 import tempfile
 from pathlib import Path
-from typing import Annotated
-from fastapi import UploadFile, HTTPException
 
 from PyPDF2 import PdfReader
 from docx import Document as DocxDocument
+from fastapi import UploadFile, HTTPException
 
 # Shared constants
 ALLOWED_EXTENSIONS = {"pdf", "docx"}
@@ -76,19 +75,19 @@ async def process_file_content(file_content: bytes, filename: str) -> tuple[str,
     with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
         tmp.write(file_content)
         tmp_path = Path(tmp.name)
-    
+
     try:
         # Extract text based on file type
         text = extract_text_from_file(tmp_path)
-        
+
         if not text.strip():
             raise ValueError("No text extracted from file")
-        
+
         # Chunk the text
         chunks = chunk_text(text)
-        
+
         return text, chunks
-        
+
     finally:
         # Clean up temporary file
-        tmp_path.unlink(missing_ok=True) 
+        tmp_path.unlink(missing_ok=True)

@@ -1,17 +1,18 @@
-from typing import List, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, delete
 from datetime import datetime, timedelta
+from typing import List, Optional
 
-from app.models.document import Document
+from sqlalchemy import select, func, delete
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.chunk import DocumentChunk
+from app.models.document import Document
 
 
 async def create_document_with_chunks(
-    db: AsyncSession,
-    filename: str,
-    content_type: str,
-    chunks: List[str]
+        db: AsyncSession,
+        filename: str,
+        content_type: str,
+        chunks: List[str]
 ) -> tuple[int, int]:
     """
     Create a document and its chunks in the database.
@@ -33,7 +34,7 @@ async def create_document_with_chunks(
         )
         db.add(doc)
         await db.flush()  # Get the ID before commit
-        
+
         db.add_all(
             DocumentChunk(
                 document_id=doc.id,
@@ -42,14 +43,14 @@ async def create_document_with_chunks(
             )
             for idx, chunk in enumerate(chunks)
         )
-        
+
         return doc.id, len(chunks)
 
 
 async def get_documents_paginated(
-    db: AsyncSession,
-    skip: int = 0,
-    limit: int = 100
+        db: AsyncSession,
+        skip: int = 0,
+        limit: int = 100
 ) -> tuple[List[Document], int]:
     """
     Get documents with pagination.
@@ -65,7 +66,7 @@ async def get_documents_paginated(
     # Get total count
     count_result = await db.execute(select(func.count(Document.id)))
     total_count = count_result.scalar()
-    
+
     # Get documents
     result = await db.execute(
         select(Document)
@@ -74,13 +75,13 @@ async def get_documents_paginated(
         .order_by(Document.upload_time.desc())
     )
     documents = result.scalars().all()
-    
+
     return documents, total_count
 
 
 async def get_document_by_id(
-    db: AsyncSession,
-    document_id: int
+        db: AsyncSession,
+        document_id: int
 ) -> Optional[Document]:
     """
     Get a document by ID.
@@ -97,10 +98,10 @@ async def get_document_by_id(
 
 
 async def get_document_chunks_paginated(
-    db: AsyncSession,
-    document_id: int,
-    skip: int = 0,
-    limit: int = 100
+        db: AsyncSession,
+        document_id: int,
+        skip: int = 0,
+        limit: int = 100
 ) -> tuple[List[DocumentChunk], int]:
     """
     Get chunks for a specific document with pagination.
@@ -120,7 +121,7 @@ async def get_document_chunks_paginated(
         .where(DocumentChunk.document_id == document_id)
     )
     total_count = count_result.scalar()
-    
+
     # Get chunks
     result = await db.execute(
         select(DocumentChunk)
@@ -130,15 +131,15 @@ async def get_document_chunks_paginated(
         .limit(limit)
     )
     chunks = result.scalars().all()
-    
+
     return chunks, total_count
 
 
 async def get_documents_by_owner_paginated(
-    db: AsyncSession,
-    owner_id: int,
-    skip: int = 0,
-    limit: int = 100
+        db: AsyncSession,
+        owner_id: int,
+        skip: int = 0,
+        limit: int = 100
 ) -> tuple[List[Document], int]:
     """
     Get documents by owner_id with pagination.
@@ -158,7 +159,7 @@ async def get_documents_by_owner_paginated(
         .where(Document.owner_id == owner_id)
     )
     total_count = count_result.scalar()
-    
+
     # Get documents for this owner
     result = await db.execute(
         select(Document)
@@ -168,13 +169,13 @@ async def get_documents_by_owner_paginated(
         .order_by(Document.upload_time.desc())
     )
     documents = result.scalars().all()
-    
+
     return documents, total_count
 
 
 async def delete_old_documents(
-    db: AsyncSession,
-    days_old: int = 30
+        db: AsyncSession,
+        days_old: int = 30
 ) -> int:
     """
     Delete documents older than specified days.
@@ -187,11 +188,11 @@ async def delete_old_documents(
         Number of deleted documents
     """
     cutoff_date = datetime.utcnow() - timedelta(days=days_old)
-    
+
     # Delete documents older than cutoff_date
     result = await db.execute(
         delete(Document).where(Document.upload_time < cutoff_date)
     )
     await db.commit()
-    
-    return result.rowcount 
+
+    return result.rowcount
